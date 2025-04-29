@@ -1,0 +1,227 @@
+﻿CREATE DATABASE BUS_TICKETS_MANAGEMENT
+GO
+
+USE BUS_TICKETS_MANAGEMENT
+GO
+
+CREATE TABLE USERS
+(
+	UserId			UNIQUEIDENTIFIER,
+	FullName		NVARCHAR(100),
+	PhoneNumber		VARCHAR(10),
+	Email			VARCHAR(100),
+	UserPassword	VARCHAR(100),
+	DateOfBirth		DATE,
+	Gender			BIT,
+	UserType		NVARCHAR(30),
+	CONSTRAINT		pk_USERS PRIMARY KEY(UserId)
+)
+
+CREATE TABLE PASSENGERS
+(
+	PassengerId		UNIQUEIDENTIFIER,
+	FaceData		VARBINARY(MAX),
+	UserId			UNIQUEIDENTIFIER,
+	CONSTRAINT		pk_PASSENGERS PRIMARY KEY(PassengerId),
+	CONSTRAINT		fk_PASSENGERS_UserId
+					FOREIGN KEY(UserId)
+					REFERENCES USERS(UserId)
+)
+
+CREATE TABLE TICKETCLASS
+(
+	TicketClassId	INT IDENTITY(1,1),
+	TicketType		VARCHAR(10),
+	TicketClassName	VARCHAR(10),
+	Price			DECIMAL(10,2),
+	DiscountRate	FLOAT,
+	CONSTRAINT		pk_TICKETCLASS PRIMARY KEY(TicketClassId)
+)
+
+CREATE TABLE TICKETS
+(
+	TicketId		UNIQUEIDENTIFIER,
+	ExpiryTime		DATETIME,
+	PurchaseTime	DATETIME,
+	PurchaseMethod	VARCHAR(10),
+	TicketState		VARCHAR(10),
+	FinalPrice		DECIMAL(10,2),
+	PassengerId		UNIQUEIDENTIFIER,
+	UserId			UNIQUEIDENTIFIER,
+	TicketClassId	INT,
+	CONSTRAINT		pk_TICKETS PRIMARY KEY(TicketId),
+	CONSTRAINT		fk_TICKETS_PassengerId
+					FOREIGN KEY(PassengerId)
+					REFERENCES PASSENGERS(PassengerId),
+	CONSTRAINT		fk_TICKETS_UserId
+					FOREIGN KEY(UserId)
+					REFERENCES USERS(UserId),
+	CONSTRAINT		fk_TICKETCLASS_TicketClassId
+					FOREIGN KEY(TicketClassId)
+					REFERENCES TICKETCLASS(TicketClassId)
+)
+
+ALTER TABLE TICKETS
+ADD
+	CONSTRAINT df_TICKETS_PurchaseTime
+	DEFAULT(GETDATE()) FOR PurchaseTime
+
+CREATE TABLE BUSROUTE
+(	
+	RouteId			INT IDENTITY(1,1),
+	RouteName		NVARCHAR(100),
+	RouteDetails	NVARCHAR(100),
+	CONSTRAINT		pk_BUSROUTE PRIMARY KEY(RouteId)
+)
+
+CREATE TABLE BUS
+(
+	BusId			INT IDENTITY(1,1),
+	LicensePlate	VARCHAR(10),
+	Capacity		INT,
+	RouteId			INT,
+	CONSTRAINT		pk_BUS PRIMARY KEY(BusId),
+	CONSTRAINT		fk_BUS_RouteId
+					FOREIGN KEY(RouteId)
+					REFERENCES BUSROUTE(RouteId)
+)
+
+CREATE TABLE BUSSTOP
+(
+	StopId			INT IDENTITY(1,1),
+	StopName		NVARCHAR(100),
+	StopLocation	VARCHAR(100),
+	CONSTRAINT		pk_BUSSTOP PRIMARY KEY(StopId)
+)
+
+CREATE TABLE PASSBY
+(
+	RouteId			INT,
+	StopId			INT,
+	StopOrder		INT,
+	CONSTRAINT		pk_PASSBY PRIMARY KEY(RouteId, StopId),
+	CONSTRAINT		fk_PASSBY_RouteId
+					FOREIGN KEY(RouteId)
+					REFERENCES BUSROUTE(RouteId),
+	CONSTRAINT		fk_PASSBY_StopId
+					FOREIGN KEY(StopId)
+					REFERENCES BUSSTOP(StopId)
+)
+
+CREATE TABLE BUSENTRY
+(
+	EntryId			UNIQUEIDENTIFIER,
+	EntryTime		DATETIME,
+	Fare			DECIMAL(10, 2),
+	PassengerId		UNIQUEIDENTIFIER,
+	TicketId		UNIQUEIDENTIFIER,
+	StopId			INT,
+	BusId			INT,
+	CONSTRAINT		pk_PBUSENTRY PRIMARY KEY(EntryId),
+	CONSTRAINT		fk_BUSENTRY_PassengerId
+					FOREIGN KEY(PassengerId)
+					REFERENCES PASSENGERS(PassengerId),
+	CONSTRAINT		fk_BUSENTRY_TicketId
+					FOREIGN KEY(TicketId)
+					REFERENCES TICKETS(TicketId),
+	CONSTRAINT		fk_BUSENTRY_StopId
+					FOREIGN KEY(StopId)
+					REFERENCES BUSSTOP(StopId),
+	CONSTRAINT		fk_BUSENTRY_BusId
+					FOREIGN KEY(BusId)
+					REFERENCES BUS(BusId),
+)
+
+ALTER TABLE BUSENTRY
+ADD
+	CONSTRAINT df_BUSENTRY_EntryTime
+	DEFAULT(GETDATE()) FOR PurchaseTime
+
+INSERT INTO TICKETCLASS(TicketType, TicketClassName, Price, DiscountRate)
+VALUES 
+    ('Monthly', 'January', 150000.00, 0.00),
+    ('Monthly', 'February', 150000.00, 0.00),
+    ('Monthly', 'March', 150000.00, 0.00),
+    ('Monthly', 'April', 150000.00, 0.00),
+    ('Monthly', 'May', 150000.00, 0.00),
+    ('Monthly', 'June', 150000.00, 0.00),
+    ('Monthly', 'July', 150000.00, 0.00),
+    ('Monthly', 'August', 150000.00, 0.00),
+    ('Monthly', 'September', 150000.00, 0.00),
+    ('Monthly', 'October', 150000.00, 0.00),
+    ('Monthly', 'November', 150000.00, 0.00),
+    ('Monthly', 'December', 150000.00, 0.00),
+    ('Single', 'Single', 10000.00, 0.00);
+
+INSERT INTO BUSROUTE(RouteName, RouteDetails)
+VALUES
+	('SBV01', N'Yên Nghĩa - Kim Mã')
+
+INSERT INTO BUSSTOP(StopName, StopLocation)
+VALUES
+	(N'Bến xe Kim Mã', '21.03230850874552, 105.82882395907686'),
+	(N'Nhà chờ Núi Trúc', '21.028832065981604, 105.8263000235342'),
+	(N'Nhà chờ Giảng Võ','21.024576863484047, 105.82107139183721'),
+	(N'Nhà chờ Thành Công','21.018106090379177, 105.81600920062888'),
+	(N'Nhà chờ Vũ Ngọc Phan','21.013425012463195, 105.81296209132245'),
+	(N'Nhà chờ Hoàng Đạo Thúy','21.00597337128846, 105.80564932039069'),
+	(N'Nhà chờ Nguyễn Tuân','21.002574990594635, 105.80081318734247'),
+	(N'Nhà chờ Khuất Duy Tiến','20.997755707343405, 105.79454920527037'),
+	(N'Nhà chờ Lương Thế Vinh','20.995249789168934, 105.79092385804753'),
+	(N'Nhà chờ Trung Văn','20.990858026484155, 105.78361931865213'),
+	(N'Nhà chờ Mỗ Lao','20.98793615753005, 105.77933642017878'),
+	(N'Nhà chờ Vạn Phúc 2','20.984776795135854, 105.77472320030445'),
+	(N'Nhà chờ Vạn Phúc 1','20.982188971206668, 105.76966770924494'),
+	(N'Nhà chờ Dương Nội','20.979380628475088, 105.76583901033239'),
+	(N'Nhà chờ Văn Khê','20.97657718647624, 105.76222024222108'),
+	(N'Nhà chờ An Hưng','20.973188491290973, 105.75788287395417'),
+	(N'Nhà chờ Cầu La Khê','20.970194639661127, 105.75465215341849'),
+	(N'Nhà chờ KĐT Parkcity','20.967647127397615, 105.75542427378532'),
+	(N'Nhà chờ La Khê','20.9653730416288, 105.75958009335362'),
+	(N'Nhà chờ Văn Phú','20.96277712715807, 105.76414579627843'),
+	(N'Nhà chờ Văn La','20.95995565163164, 105.7618664432653'),
+	(N'Nhà chờ Ba La','20.957102842712526, 105.75820285232707'),
+	(N'Bến xe Yên Nghĩa','20.949643834698612, 105.74765461845993');
+
+INSERT INTO BUS (LicensePlate, Capacity, RouteId)
+VALUES 
+    ('29B-48392', 60, 1),
+    ('29B-75031', 60, 1),
+    ('29B-12947', 60, 1),
+    ('29B-30485', 60, 1),
+    ('29B-67219', 60, 1),
+    ('29B-94153', 60, 1),
+    ('29B-25874', 60, 1),
+    ('29B-59632', 60, 1),
+    ('29B-81320', 60, 1),
+    ('29B-34791', 60, 1),
+    ('29B-68504', 60, 1),
+    ('29B-10237', 60, 1),
+    ('29B-42981', 60, 1),
+    ('29B-76453', 60, 1),
+    ('29B-29184', 60, 1),
+    ('29B-53729', 60, 1),
+    ('29B-87342', 60, 1),
+    ('29B-31695', 60, 1),
+    ('29B-64870', 60, 1),
+    ('29B-19423', 60, 1),
+    ('29B-45278', 60, 1),
+    ('29B-78931', 60, 1),
+    ('29B-23586', 60, 1),
+    ('29B-57149', 60, 1),
+    ('29B-90832', 60, 1),
+    ('29B-37415', 60, 1),
+    ('29B-61987', 60, 1),
+    ('29B-14620', 60, 1),
+    ('29B-48293', 60, 1),
+    ('29B-71538', 60, 1),
+    ('29B-26391', 60, 1),
+    ('29B-59714', 60, 1),
+    ('29B-83476', 60, 1),
+    ('29B-38129', 60, 1),
+    ('29B-62783', 60, 1),
+    ('29B-17346', 60, 1),
+    ('29B-40981', 60, 1),
+    ('29B-74653', 60, 1),
+    ('29B-29207', 60, 1),
+    ('29B-53842', 60, 1);
