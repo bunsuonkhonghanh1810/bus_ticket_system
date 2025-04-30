@@ -21,7 +21,7 @@ def detect_face(image):
     
     return False
 
-def check_existed_faces(captured_image, status_label, root):
+def check_existed_faces(cap, status_label, root):
     print("Bắt đầu check_existed_faces")
     conn, cursor = connect_db()
     if not conn:
@@ -30,39 +30,42 @@ def check_existed_faces(captured_image, status_label, root):
 
     cursor.execute('SELECT * FROM PASSENGERS')
     faceData = cursor.fetchall()
-    close_db(conn, cursor)
 
     existed = {}
-    print('hehe')
+    max_attempts = 100
 
-    for img in captured_image:
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-        rgb_frame = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    for _ in range(max_attempts):
+        ret, frame = cap.read()
+        
+        if not ret:
+            print("Lỗi: Không đọc được khung hình")
+            break
+
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
         results = face_detection.process(rgb_frame)
 
         if results.detections:
             for detection in results.detections:
                 bboxC = detection.location_data.relative_bounding_box
-                h, w, _ = img.shape
+                h, w, _ = frame.shape
                 x, y, w_bbox, h_bbox = int(bboxC.xmin * w), int(bboxC.ymin * h), int(bboxC.width * w), int(bboxC.height * h)
 
                 if x < 0 or y < 0 or x + w_bbox > w or y + h_bbox > h:
                     continue
-
-                print('huhu')
-
-                face_crop = img[y:y+h_bbox, x:x+w_bbox]
-
+                face_crop = frame[y:y+h_bbox, x:x+w_bbox]
                 if face_crop.size == 0:
                     continue
-
-                cv2.imwrite('1.jpg', face_crop)
-
+                
                 passengerId = recognize_face(face_crop, faceData)
                 existed[passengerId] = existed.get(passengerId, 0) + 1
-                print(passengerId)
+
+        if sum(existed.values()) > 3:
+            break
 
         cv2.waitKey(10)
+
+    close_db(conn, cursor)
 
     s = sorted(existed, key=existed.get, reverse=True)
     if not s:
@@ -71,7 +74,7 @@ def check_existed_faces(captured_image, status_label, root):
         return s[1]
     return s[0]
 
-
+# Hàm recognize_face
 def recognize_face(face_image, faceData):
     try:
         face_image = cv2.resize(face_image, (160, 160))

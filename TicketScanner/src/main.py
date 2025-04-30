@@ -5,11 +5,12 @@ import queue
 import uuid
 import random
 import time
+import numpy as np
 
 from PIL import Image, ImageTk
 
 from db import connect_db, close_db
-from recognition import check_existed_faces, detect_face
+from recognition import check_existed_faces, detect_face, embedder
 
 class FaceRecognitionApp:
     def __init__(self, root):
@@ -17,12 +18,12 @@ class FaceRecognitionApp:
         self.root.title("Face Recognition System")
 
         # Biến lưu trạng thái
-        self.captured_image = []
         self.frame_counter = 0
         self.face_detected = False
-        self.face_queue = queue.Queue()
+        self.face_queue = queue.Queue(maxsize=2)
         self.detecting = True  # Cờ cho phép detect face
         self.processing_passenger = False  # Đang xử lý nhận diện không?
+        embedder.embeddings(np.zeros((1, 160, 160, 3), dtype=np.uint8))
         threading.Thread(target=self.detect_face_thread, daemon=True).start()
 
 
@@ -57,8 +58,8 @@ class FaceRecognitionApp:
             except queue.Empty:
                 continue
 
-    def check_faces_and_find_ticket(self, images):
-        passenger_id = check_existed_faces(images, self.status_label, self.root)
+    def check_faces_and_find_ticket(self, cap):
+        passenger_id = check_existed_faces(cap, self.status_label, self.root)
         if passenger_id != "unknown":
             conn, cursor = connect_db()
             if not conn:
@@ -81,13 +82,15 @@ class FaceRecognitionApp:
                     self.root.after(0, lambda: self.status_label.configure(text="Chào mừng hành khách"))
                 else:
                     self.root.after(0, lambda: self.status_label.configure(text="Hành khách không có vé"))
+            close_db(conn, cursor)
         else:
             print('Không tìm thấy hành khách')
             self.root.after(0, lambda: self.status_label.configure(text="Không tìm thấy hành khách"))
 
         # Khởi động lại detect face sau khi xử lý xong
-        time.sleep(2)
-        self.captured_image.clear()
+        self.root.after(4000, self.continue_processing)
+
+    def continue_processing(self):
         self.root.after(0, lambda: self.status_label.configure(text="Đang xử lý"))
         self.detecting = True
         self.processing_passenger = False
@@ -96,9 +99,9 @@ class FaceRecognitionApp:
         ret, frame = self.cap.read()
         if ret:
             # Chuyển khung hình từ BGR (OpenCV) sang RGB
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            temp_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             # Chuyển thành định dạng ImageTk
-            img = Image.fromarray(frame)
+            img = Image.fromarray(temp_frame)
             # Resize khung hình nếu muốn lớn hơn (ví dụ: 800x600)
             img = img.resize((960, 720), Image.LANCZOS)
             imgtk = ImageTk.PhotoImage(image=img)
@@ -113,12 +116,9 @@ class FaceRecognitionApp:
 
                     if self.face_detected:
                         print("✅ Có khuôn mặt")
-                        self.captured_image.append(frame)   
-
-                        if len(self.captured_image) == 10:
-                            self.processing_passenger = True
-                            self.detecting = False  # Dừng phát hiện thêm mặt
-                            threading.Thread(target=self.check_faces_and_find_ticket, args=(self.captured_image,), daemon=True).start()
+                        self.processing_passenger = True
+                        self.detecting = False  # Dừng phát hiện thêm mặt
+                        threading.Thread(target=self.check_faces_and_find_ticket, args=(self.cap,), daemon=True).start()
                     else:
                         print("❌ Không có khuôn mặt")
 

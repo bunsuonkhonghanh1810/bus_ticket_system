@@ -130,8 +130,6 @@ def check_existed_faces(cap, status_label, root):
                 face_crop = frame[y:y+h_bbox, x:x+w_bbox]
                 if face_crop.size == 0:
                     continue
-                cv2.imwrite('1.jpg', face_crop)
-
                 
                 passengerId = recognize_face(face_crop, faceData)
                 existed[passengerId] = existed.get(passengerId, 0) + 1
