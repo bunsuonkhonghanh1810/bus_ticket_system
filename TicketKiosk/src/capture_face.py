@@ -70,9 +70,6 @@ def capture_face(captured_images, cap, status_label=None, root=None):
                         root.after(0, lambda: status_label.configure(text="Trạng thái: Hoàn tất chụp ảnh"))
                         face_mesh.close()
                         return captured_images
-                else:
-                    captured_images.append(frame.copy())
-
 
         # Đợi nhẹ để tránh CPU overload
         cv2.waitKey(30)
