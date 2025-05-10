@@ -1,7 +1,7 @@
 import pyodbc
 
 def connect_db():
-    server = '192.168.0.114'  # IP của máy chủ
+    server = '10.90.103.36'  # IP của máy chủ
     database = 'BUS_TICKETS_MANAGEMENT'
     username = 'bus_management'
     password = '123456'
