@@ -60,7 +60,7 @@ def check_existed_faces(cap, status_label, root):
                 passengerId = recognize_face(face_crop, faceData)
                 existed[passengerId] = existed.get(passengerId, 0) + 1
 
-        if sum(existed.values()) > 3:
+        if sum(existed.values()) > 2:
             break
 
         cv2.waitKey(10)

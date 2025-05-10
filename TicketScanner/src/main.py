@@ -71,6 +71,11 @@ class FaceRecognitionApp:
                 ticket = tickets[0]
                 cursor.execute("INSERT INTO BUSENTRY (EntryId, Fare, PassengerId, TicketId, StopId, BusId) VALUES (?, ?, ?, ?, ?, ?)", 
                                (str(uuid.uuid4()), ticket[12], ticket[5], ticket[0], random.randint(1, 23), random.randint(1, 40)))
+                cursor.execute(
+                    "UPDATE TICKETS SET TicketState = ? WHERE TicketId = ?",
+                    ('Used', ticket[0])
+                )
+                conn.commit()
                 self.root.after(0, lambda: self.status_label.configure(text="Chào mừng hành khách"))
             else:
                 cursor.execute(f"SELECT * FROM TICKETS JOIN TICKETCLASS ON TICKETS.TicketClassId = TICKETCLASS.TicketClassId WHERE PassengerId = '{passenger_id}' AND TicketType = 'Monthly' AND TicketState = 'Active'")
@@ -79,6 +84,7 @@ class FaceRecognitionApp:
                     ticket = tickets[0]
                     cursor.execute("INSERT INTO BUSENTRY (EntryId, Fare, PassengerId, TicketId, StopId, BusId) VALUES (?, ?, ?, ?, ?, ?)", 
                                (str(uuid.uuid4()), ticket[12], ticket[5], ticket[0], random.randint(1, 23), random.randint(1, 40)))
+                    conn.commit()
                     self.root.after(0, lambda: self.status_label.configure(text="Chào mừng hành khách"))
                 else:
                     self.root.after(0, lambda: self.status_label.configure(text="Hành khách không có vé"))

@@ -113,8 +113,6 @@ class FaceRecognitionApp:
         cursor.execute("SELECT * FROM TICKETCLASS WHERE TicketType = 'Single'")
         tickets = cursor.fetchall()
 
-        print('hehe')
-
         ticket_name_mapping = {
             "January": "Tháng 1",
             "February": "Tháng 2",
